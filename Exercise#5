@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Validation with AJAX</title>
+    <style>
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+
+    <h2>Register Form</h2>
+
+    <form id="registerForm">
+        <!-- Username -->
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
+        <span id="usernameError" class="error"></span>
+        <br><br>
+
+        <!-- Email -->
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+        <span id="emailError" class="error"></span>
+        <br><br>
+
+        <!-- Submit Button -->
+        <input type="submit" value="Register">
+        <span id="formSuccess" class="success"></span>
+    </form>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent normal form submission
+
+            // Clear previous error messages
+            document.getElementById('usernameError').textContent = '';
+            document.getElementById('emailError').textContent = '';
+            document.getElementById('formSuccess').textContent = '';
+
+            // Collect form data
+            const formData = new FormData(this);
+
+            // Send form data to server using AJAX (Fetch API)
+            fetch('validate_form.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Success message
+                    document.getElementById('formSuccess').textContent = 'Form submitted successfully!';
+                } else {
+                    // Display error messages
+                    if (data.errors.username) {
+                        document.getElementById('usernameError').textContent = data.errors.username;
+                    }
+                    if (data.errors.email) {
+                        document.getElementById('emailError').textContent = data.errors.email;
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+
+</body>
+</html>
+
+<?php
+// Initialize response structure
+$response = [
+    'success' => true,
+    'errors' => []
+];
+
+// Validate Username
+if (empty($_POST['username'])) {
+    $response['success'] = false;
+    $response['errors']['username'] = 'Username is required';
+} elseif (strlen($_POST['username']) < 3) {
+    $response['success'] = false;
+    $response['errors']['username'] = 'Username must be at least 3 characters long';
+}
+
+// Validate Email
+if (empty($_POST['email'])) {
+    $response['success'] = false;
+    $response['errors']['email'] = 'Email is required';
+} elseif (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+    $response['success'] = false;
+    $response['errors']['email'] = 'Invalid email format';
+}
+
+// Simulate custom validation (e.g., check if username is "admin")
+if ($_POST['username'] === 'admin') {
+    $response['success'] = false;
+    $response['errors']['username'] = 'Username "admin" is not allowed';
+}
+
+// Return the response as JSON
+header('Content-Type: application/json');
+echo json_encode($response);
